@@ -47,6 +47,7 @@ out/
 
 #
 build/com/*
+build/*
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
