@@ -40,7 +40,9 @@ import org.apache.http.impl.client.ProxyAuthenticationStrategy;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
-
+import org.apache.commons.lang3.StringUtils;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 public class ServiceNowAction implements Action {
 
 	private static final Logger log = Logger.getLogger(ServiceNowAction.class.getName());
@@ -91,6 +93,7 @@ public class ServiceNowAction implements Action {
 	private int proxyPort;
 	private String proxyUserName;
 	private String proxyPassword;
+
 	
 	/**
 	 * Initializes the Action Plugin. This method is always 
@@ -108,6 +111,7 @@ public class ServiceNowAction implements Action {
 	@Override
 	public Status setup(ActionEnvironment env) throws Exception {
 		//retrieve the values passed to this action.
+
 		user = env.getConfigString(PARAM_USER);
 		password = env.getConfigPassword(PARAM_PASSWORD);
 		domain = env.getConfigUrl(PARAM_DOMAIN).toString();
@@ -212,7 +216,7 @@ public class ServiceNowAction implements Action {
 		 // Since I don't have an account with ServiceNow, I am going to pass a dummy domain name.
 		 // I want this plugin to test successfully for me to send it to the customers. If dummy domain was found, I am returning
 		 // SUCCESS for the plugin to test.
-		 if (domain.contains("dummy")) {
+        if (domain.contains("dummy")) {
 			 return new Status(Status.StatusCode.Success);
 		 }
 		 HttpClientBuilder builder = HttpClientBuilder.create();
@@ -293,6 +297,8 @@ public class ServiceNowAction implements Action {
 		jObj.put("assignment_group", assignTo);
 		jObj.put("knowledge", "false");
 		jObj.put("known_error", "false");
+        String incidentInstance = "";
+        String incidentInstanceType = "";
 
 		Collection<Incident> incidents = env.getIncidents();
 		if(incidents == null) {
@@ -303,6 +309,7 @@ public class ServiceNowAction implements Action {
 		double triggeredValue = 0;
 		double thresholdValue = 0;
 		String split = "";
+		String incidentHost = "";
 		String incidentRule = null;
 //		Severity incidentSeverity = null;
 		String shrtDesc = null;
@@ -322,11 +329,12 @@ public class ServiceNowAction implements Action {
 				//AgentSource agentSource = (AgentSource) v.getViolatedMeasure().getSource();
 				//String source = agentSource.getName();
 				//log.log(Level.SEVERE, "Source="+source);
+
 				if (source.getSourceType() == SourceType.Monitor) {
 					// Debugging
 					//Monitor monitor = (MonitorSource)source;
 					MonitorSource monitorSource;
-					monitorName = (monitorSource = (MonitorSource)source).getName();
+					String monitorName = (monitorSource = (MonitorSource)source).getName();
 					//String monitorName = monitor.getName();
 					//String monitorStatus = (monitor = (MonitorSource)source).getMessage();
 					//log.info("Monitorname " + monitorName);
@@ -355,11 +363,10 @@ public class ServiceNowAction implements Action {
 
 				} else if (source.getSourceType() == SourceType.Agent) {
 					String AgentHostName = ((AgentSource) source).getHost().toString();
-					agentName = ((AgentSource) source).getName().toString();
 					log.fine("Agent type measure.");
 					incidentHost = AgentHostName;
 
-					// log.fine(incidentHost);
+					log.fine(incidentHost);
 				}
 
 				for (TriggerValue t : triggerValues) {
@@ -391,7 +398,7 @@ public class ServiceNowAction implements Action {
 		jObj.put("assigned_to", assignTo);
  		jObj.put("short_description", shrtDesc);
  		jObj.put("contact_type", "Alert");
- 		jObj.put("cmdb_ci", cmdbci);
+ 		jObj.put("cmdb_ci", incidentHost);
  		jObj.put("description", summary);
 		jObj.put("correlation_id", incID);
 		jObj.put("correlation_display", "dynaTrace");
