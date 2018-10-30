@@ -316,11 +316,53 @@ public class ServiceNowAction implements Action {
 			Collection<Violation> violations = i.getViolations(); 
 			for (Violation v : violations) { 
 				Collection<TriggerValue> triggerValues = v.getTriggerValues();
+				Measure violatedMeasure = v.getViolatedMeasure();
+				Source source = violatedMeasure.getSource();
 				//cmdbci = v.getViolatedMeasure().getSource().toString();
 				//AgentSource agentSource = (AgentSource) v.getViolatedMeasure().getSource();
 				//String source = agentSource.getName();
 				//log.log(Level.SEVERE, "Source="+source);
-				for (TriggerValue t : triggerValues) { 
+				if (source.getSourceType() == SourceType.Monitor) {
+					// Debugging
+					//Monitor monitor = (MonitorSource)source;
+					MonitorSource monitorSource;
+					monitorName = (monitorSource = (MonitorSource)source).getName();
+					//String monitorName = monitor.getName();
+					//String monitorStatus = (monitor = (MonitorSource)source).getMessage();
+					//log.info("Monitorname " + monitorName);
+					//log.info("Monitorname " + monitorStatus);
+					// debugging
+					String sMeasure = violatedMeasure.getName();
+					if(sMeasure.contains("@"))
+					{
+						log.finer("Measure: "+ sMeasure);
+						incidentHost = StringUtils.substringAfter(sMeasure, "@");
+						incidentHost = StringUtils.substringBefore(incidentHost,")");
+						log.finer("Measure Host: "+ incidentHost);
+					}
+					String pat = "\\[.*-\\>(.*?)\\]";
+					Pattern pattern = Pattern.compile(pat);
+					Matcher matches = pattern.matcher(sMeasure);
+					while (matches.find()) {
+						// log.fine(matches.group());
+						incidentInstanceType = StringUtils
+								.substringBetween(sMeasure, "[", "->");
+						// log.fine(incidentInstanceType);
+						incidentInstance = StringUtils.substringBetween(
+								sMeasure, "->", "]");
+						// log.fine(incidentInstance);
+					}
+
+				} else if (source.getSourceType() == SourceType.Agent) {
+					String AgentHostName = ((AgentSource) source).getHost().toString();
+					agentName = ((AgentSource) source).getName().toString();
+					log.fine("Agent type measure.");
+					incidentHost = AgentHostName;
+
+					// log.fine(incidentHost);
+				}
+
+				for (TriggerValue t : triggerValues) {
 					triggeredValue = t.getValue().getValue(); 
 				} 
 				List<String> splitting = v.getViolatedMeasure().getSplittings(); 
